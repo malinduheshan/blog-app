@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Basic Blog App</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- SweetAlert2 CSS and JS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  </head>
+
+  <body>
+    <header class="header">
+      <div class="container">
+        <h1>Blog Posts Application</h1>
+      </div>
+    </header>
+
+    <main class="container">
+      <div class="create-post">
+        <h2 style="display: flex; justify-content: center">Create New Post</h2>
+        <form id="createPostForm">
+          <input
+            type="text"
+            id="title"
+            class="input-field"
+            placeholder="Title"
+          />
+          <textarea
+            id="content"
+            class="input-field"
+            placeholder="Content"
+          ></textarea>
+          <button type="submit" class="btn">Create Post</button>
+        </form>
+      </div>
+
+      <div class="post-list">
+        <h2 class="allposts">All Posts</h2>
+        <div id="posts" class="posts"></div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <p>&copy; 2024 Blog Posts Application</p>
+      </div>
+    </footer>
+
+    <script>
+      // display posts
+      function fetchPosts() {
+        $.ajax({
+          url: "view_posts.php",
+          method: "GET",
+          success: function (data) {
+            const posts = JSON.parse(data);
+            let postsHtml = "";
+            posts.forEach((post) => {
+              postsHtml += `
+                            <div class="post">
+                                <h3 class="posttitle" >${post.title}</h3>
+                                <p>${post.content}</p>
+                                <p class="timestamp">${post.created_at}</p>
+                                <button class="delete-btn" data-id="${post.id}">Delete</button>
+                            </div>
+                        `;
+            });
+            $("#posts").html(postsHtml);
+          },
+        });
+      }
+
+      // Create a new post
+      $("#createPostForm").on("submit", function (e) {
+        e.preventDefault();
+        $.ajax({
+          url: "create_post.php",
+          method: "POST",
+          data: {
+            title: $("#title").val(),
+            content: $("#content").val(),
+          },
+          success: function (response) {
+            const res = JSON.parse(response);
+            if (res.status === "success") {
+              Swal.fire({
+                icon: "success",
+                title: "Success!",
+                text: res.message,
+                showConfirmButton: false,
+                timer: 1500,
+              });
+              fetchPosts();
+              $("#createPostForm")[0].reset();
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: res.message,
+              });
+            }
+          },
+        });
+      });
+
+      // Delete a post
+      $(document).on("click", ".delete-btn", function () {
+        const id = $(this).data("id");
+        Swal.fire({
+          title: "Are you sure?",
+          text: "You won't be able to revert this!",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#d33",
+          cancelButtonColor: "#3085d6",
+          confirmButtonText: "Yes, delete it!",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            $.ajax({
+              url: "delete_post.php",
+              method: "POST",
+              data: { id },
+              success: function (response) {
+                const res = JSON.parse(response);
+                if (res.status === "success") {
+                  Swal.fire({
+                    icon: "success",
+                    title: "Deleted!",
+                    text: res.message,
+                    showConfirmButton: false,
+                    timer: 1500,
+                  });
+                  fetchPosts();
+                } else {
+                  Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: res.message,
+                  });
+                }
+              },
+            });
+          }
+        });
+      });
+
+      fetchPosts();
+    </script>
+  </body>
+</html>
